@@ -1,3 +1,4 @@
+
 "use server";
 
 import { parsePitchDurationDataString, generateMidiFromParsedData, ParsedData } from '@/lib/midi-utils';
@@ -14,10 +15,26 @@ export async function createMidiFileAction(
   formData: FormData
 ): Promise<ActionResult> {
   const rawData = formData.get('pitchDurationData');
+  const rawTempo = formData.get('tempo');
 
   if (typeof rawData !== 'string' || !rawData) {
     return { success: false, error: 'Pitch duration data is required.' };
   }
+
+  let tempo = 120; // Default tempo
+
+  if (typeof rawTempo === 'string' && rawTempo.trim() !== '') {
+    const parsedTempo = parseInt(rawTempo, 10);
+    if (!isNaN(parsedTempo) && parsedTempo >= 30 && parsedTempo <= 300) {
+      tempo = parsedTempo;
+    } else {
+      return { success: false, error: 'Invalid tempo value. Must be a number between 30 and 300.' };
+    }
+  } else {
+      // This case handles if rawTempo is null, undefined, or an empty/whitespace string
+      return { success: false, error: 'Tempo is required and must be a number between 30 and 300.' };
+  }
+
 
   const parseResult = parsePitchDurationDataString(rawData);
 
@@ -28,12 +45,12 @@ export async function createMidiFileAction(
   const parsedData = parseResult as ParsedData;
 
   try {
-    const base64Midi = generateMidiFromParsedData(parsedData);
+    const base64Midi = generateMidiFromParsedData(parsedData, tempo);
     if (base64Midi) {
       return {
         success: true,
         data: base64Midi,
-        fileName: `composed_${new Date().toISOString().replace(/[:.]/g, '-')}.mid`,
+        fileName: `composed_tempo_${tempo}_${new Date().toISOString().replace(/[:.]/g, '-')}.mid`,
       };
     } else {
       return { success: false, error: 'Failed to generate MIDI data.' };

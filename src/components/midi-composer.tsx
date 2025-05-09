@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 import { useActionState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { createMidiFileAction } from '@/app/actions';
 import { Download, Loader2, Music2 } from 'lucide-react';
@@ -54,6 +56,8 @@ export function MidiComposer() {
   const [formState, formAction, isActionPending] = useActionState(createMidiFileAction, initialState);
   const { toast } = useToast();
   const [pitchData, setPitchData] = useState(initialPitchData);
+  const [tempo, setTempo] = useState<string>("120");
+
 
   useEffect(() => {
     if (formState?.error) {
@@ -103,9 +107,9 @@ export function MidiComposer() {
   return (
     <form action={formAction} className="space-y-6">
       <div>
-        <label htmlFor="pitchDurationData" className="block text-sm font-medium mb-1">
+        <Label htmlFor="pitchDurationData" className="block text-sm font-medium mb-1">
           Pitch Duration Data
-        </label>
+        </Label>
         <Textarea
           id="pitchDurationData"
           name="pitchDurationData"
@@ -118,6 +122,27 @@ export function MidiComposer() {
         />
         <p className="mt-2 text-xs text-muted-foreground">
           Enter data in Python list of tuples format, e.g., <code className="bg-muted p-1 rounded-sm">[((60,), (60,64,67), (48,), 0.5)]</code>. Comments with # are allowed and will be handled by the parser.
+        </p>
+      </div>
+
+      <div>
+        <Label htmlFor="tempo" className="block text-sm font-medium mb-1">
+          Tempo (BPM)
+        </Label>
+        <Input
+          id="tempo"
+          name="tempo"
+          type="number"
+          value={tempo}
+          onChange={(e) => setTempo(e.target.value)}
+          min="30"
+          max="300"
+          step="1"
+          className="w-full sm:w-40 p-3 border rounded-md shadow-sm bg-background focus:ring-primary focus:border-primary"
+          required
+        />
+        <p className="mt-2 text-xs text-muted-foreground">
+          Set the tempo in Beats Per Minute (30-300).
         </p>
       </div>
 
@@ -163,4 +188,3 @@ export function MidiComposer() {
     </form>
   );
 }
-

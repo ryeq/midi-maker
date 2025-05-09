@@ -76,76 +76,59 @@ export function parsePitchDurationDataString(inputString: string): ParsedData | 
 }
 
 // Function to map Python duration (in beats) to midi-writer-js duration string
-function mapDurationToMidiWriter(pythonDuration: number): string {
-  if (pythonDuration === 0.125) return '32'; // Thirty-second note
-  if (pythonDuration === 0.25) return '16'; // Sixteenth note
-  if (pythonDuration === 0.5) return '8';  // Eighth note
-  if (pythonDuration === 1.0) return '4';  // Quarter note
-  if (pythonDuration === 2.0) return '2';  // Half note
-  if (pythonDuration === 4.0) return '1';  // Whole note
-  
-  // For dotted notes or other durations, midi-writer-js supports an array for duration
-  // e.g., ['4', '8'] for a dotted quarter note (quarter + eighth).
-  // For simplicity, we'll map common ones.
-  // If a duration is not directly mapped, it might need to be represented as ticks.
-  // 'T<ticks>' e.g., 'T128' for 128 ticks (a quarter note if TPB is 128).
-  // pythonDuration * ActualMidiWriter.constants.TPB could calculate this.
-  // For now, we'll default unmapped durations.
-  if (!ActualMidiWriter.constants || typeof ActualMidiWriter.constants.TPB === 'undefined') {
-    console.error('ActualMidiWriter.constants.TPB is not available. Defaulting to 128 for TPB.');
-    const DEFAULT_TPB = 128;
-    const ticks = pythonDuration * DEFAULT_TPB;
-     if (Number.isInteger(ticks) && ticks > 0) {
-      return `T${ticks}`;
-    }
-    console.warn(`Unsupported Python duration: ${pythonDuration} with default TPB. Defaulting to quarter note equivalent ticks ('T${DEFAULT_TPB}').`);
-    return `T${DEFAULT_TPB}`;
+function mapDurationToMidiWriter(pythonDuration: number, TPB: number): string {
+  // Prioritize direct mapping for common beat fractions if they match standard note values
+  if (TPB === 128) { // Assuming standard TPB where these make sense
+    if (pythonDuration === 0.125) return '32';
+    if (pythonDuration === 0.25) return '16';
+    if (pythonDuration === 0.5) return '8';
+    if (pythonDuration === 1.0) return '4';
+    if (pythonDuration === 2.0) return '2';
+    if (pythonDuration === 4.0) return '1';
   }
 
-  const ticks = pythonDuration * ActualMidiWriter.constants.TPB;
+  // Fallback to ticks for all other durations or if TPB is non-standard for these mappings
+  const ticks = pythonDuration * TPB;
   if (Number.isInteger(ticks) && ticks > 0) {
     return `T${ticks}`;
   }
 
-  console.warn(`Unsupported Python duration: ${pythonDuration}. Defaulting to quarter note equivalent ticks ('T${ActualMidiWriter.constants.TPB}').`);
-  return `T${ActualMidiWriter.constants.TPB}`;
+  // If ticks calculation is problematic (e.g., non-integer, zero, or negative), default to a sensible value.
+  // This indicates an issue with either pythonDuration or TPB.
+  console.warn(`Unsupported Python duration: ${pythonDuration} or problematic TPB: ${TPB}. Defaulting to quarter note equivalent ticks ('T${TPB}').`);
+  return `T${TPB}`; // Default to TPB ticks (equivalent to a quarter note if TPB is per quarter)
 }
 
+
 // Function to generate MIDI
-export function generateMidiFromParsedData(parsedData: ParsedData): string { // returns base64 string
-  const tempo = 120;
+export function generateMidiFromParsedData(parsedData: ParsedData, tempo: number): string { // returns base64 string
   const instrumentId = 0; // Acoustic Grand Piano
   const volume = 80; // 0-127
+  
+  // midi-writer-js specific: Use its constants if available, otherwise default
+  const MidiWriter = (ActualMidiWriter as any).default || ActualMidiWriter;
+  const TPB = (MidiWriter.constants && typeof MidiWriter.constants.TPB === 'number') ? MidiWriter.constants.TPB : 128;
 
-  const melodyTrack = new ActualMidiWriter.Track();
-  melodyTrack.setTempo(tempo); // Set tempo on the first track
-  melodyTrack.addEvent(new ActualMidiWriter.ProgramChangeEvent({ instrument: instrumentId, channel: 1 }));
 
-  const chordTrack = new ActualMidiWriter.Track();
-  // Tempo is global or set on first track usually. No need to setTempo on other tracks unless it changes.
-  chordTrack.addEvent(new ActualMidiWriter.ProgramChangeEvent({ instrument: instrumentId, channel: 2 }));
+  const melodyTrack = new MidiWriter.Track();
+  melodyTrack.setTempo(tempo); 
+  melodyTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: instrumentId, channel: 1 }));
 
-  const bassTrack = new ActualMidiWriter.Track();
-  bassTrack.addEvent(new ActualMidiWriter.ProgramChangeEvent({ instrument: instrumentId, channel: 3 }));
+  const chordTrack = new MidiWriter.Track();
+  chordTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: instrumentId, channel: 2 }));
+
+  const bassTrack = new MidiWriter.Track();
+  bassTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: instrumentId, channel: 3 }));
   
   let currentTimeInBeats = 0; 
-  let TICKS_PER_BEAT: number;
-
-  if (!ActualMidiWriter.constants || typeof ActualMidiWriter.constants.TPB === 'undefined') {
-    console.error('ActualMidiWriter.constants.TPB is not available for TICKS_PER_BEAT. Defaulting to 128.');
-    TICKS_PER_BEAT = 128;
-  } else {
-    TICKS_PER_BEAT = ActualMidiWriter.constants.TPB; 
-  }
-
 
   for (const item of parsedData) {
-    const midiWriterDuration = mapDurationToMidiWriter(item.duration);
-    const absoluteStartTick = Math.round(currentTimeInBeats * TICKS_PER_BEAT);
+    const midiWriterDuration = mapDurationToMidiWriter(item.duration, TPB);
+    const absoluteStartTick = Math.round(currentTimeInBeats * TPB);
 
     const commonNoteParams = {
       duration: midiWriterDuration,
-      sequential: false, // Use absolute timing based on 'tick'
+      sequential: false, 
       tick: absoluteStartTick,
       velocity: volume,
     };
@@ -153,7 +136,7 @@ export function generateMidiFromParsedData(parsedData: ParsedData): string { // 
     const validMelodyPitches = item.melodyPitches.filter(p => p > 0 && p <= 127);
     if (validMelodyPitches.length > 0) {
       melodyTrack.addEvent(
-        new ActualMidiWriter.NoteEvent({
+        new MidiWriter.NoteEvent({
           ...commonNoteParams,
           pitch: validMelodyPitches,
           channel: 1, 
@@ -164,7 +147,7 @@ export function generateMidiFromParsedData(parsedData: ParsedData): string { // 
     const validChordPitches = item.chordPitches.filter(p => p > 0 && p <= 127);
     if (validChordPitches.length > 0) {
        chordTrack.addEvent(
-        new ActualMidiWriter.NoteEvent({
+        new MidiWriter.NoteEvent({
           ...commonNoteParams,
           pitch: validChordPitches,
           channel: 2,
@@ -175,7 +158,7 @@ export function generateMidiFromParsedData(parsedData: ParsedData): string { // 
     const validBassPitches = item.bassPitches.filter(p => p > 0 && p <= 127);
     if (validBassPitches.length > 0) {
       bassTrack.addEvent(
-        new ActualMidiWriter.NoteEvent({
+        new MidiWriter.NoteEvent({
           ...commonNoteParams,
           pitch: validBassPitches,
           channel: 3,
@@ -185,14 +168,12 @@ export function generateMidiFromParsedData(parsedData: ParsedData): string { // 
     currentTimeInBeats += item.duration;
   }
   
-  // Instantiate Writer with an array of tracks
-  const writer = new ActualMidiWriter.Writer([melodyTrack, chordTrack, bassTrack]);
+  const writer = new MidiWriter.Writer([melodyTrack, chordTrack, bassTrack]);
 
-  const dataUri = writer.dataUri(); // Format: "data:audio/midi;base64,..."
+  const dataUri = writer.dataUri(); 
   if (!dataUri || typeof dataUri !== 'string' || !dataUri.includes(',')) {
     console.error('MIDI Writer did not return a valid data URI.');
     throw new Error('Failed to generate MIDI data URI.');
   }
-  return dataUri.split(',')[1]; // Extract base64 part
+  return dataUri.split(',')[1]; 
 }
-
