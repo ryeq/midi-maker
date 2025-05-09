@@ -1,3 +1,4 @@
+
 import MidiWriter from 'midi-writer-js';
 
 export interface ParsedDataItem {
@@ -88,7 +89,7 @@ function mapDurationToMidiWriter(pythonDuration: number): string {
 
 // Function to generate MIDI
 export function generateMidiFromParsedData(parsedData: ParsedData): string { // returns base64 string
-  const writer = new MidiWriter.Writer(); // Equivalent to new MidiWriter.Writer([track1, track2, ...])
+  const writer = new MidiWriter.Writer(); 
 
   const tempo = 120;
   const instrumentId = 0; // Acoustic Grand Piano
@@ -97,28 +98,21 @@ export function generateMidiFromParsedData(parsedData: ParsedData): string { // 
   // Track 0 for Melody (Channel 1 in MIDI)
   const melodyTrack = new MidiWriter.Track();
   melodyTrack.setTempo(tempo);
-  melodyTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: instrumentId })); // Uses track's default channel (1 if not set)
-  // It's better to explicitly set channel for clarity or if events might override it
-  melodyTrack.setChannel(1);
+  melodyTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: instrumentId, channel: 1 }));
 
 
   // Track 1 for Chords (Channel 2 in MIDI)
   const chordTrack = new MidiWriter.Track();
   chordTrack.setTempo(tempo);
-  chordTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: instrumentId }));
-  chordTrack.setChannel(2);
+  chordTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: instrumentId, channel: 2 }));
 
   // Track 2 for Bass (Channel 3 in MIDI)
   const bassTrack = new MidiWriter.Track();
   bassTrack.setTempo(tempo);
-  bassTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: instrumentId }));
-  bassTrack.setChannel(3);
+  bassTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: instrumentId, channel: 3 }));
   
   let currentTimeInBeats = 0; 
-  // midi-writer-js default ticks per beat (quarter note) is 128.
-  // This aligns with standard MIDI resolution (often 480, 960 PPQN, where 120 PPQN means 120 ticks for a quarter note).
-  // We can use the default 128.
-  const TICKS_PER_BEAT = MidiWriter.constants.TPB; // Typically 128
+  const TICKS_PER_BEAT = MidiWriter.constants.TPB; 
 
   for (const item of parsedData) {
     const midiWriterDuration = mapDurationToMidiWriter(item.duration);
@@ -132,7 +126,7 @@ export function generateMidiFromParsedData(parsedData: ParsedData): string { // 
           duration: midiWriterDuration,
           tick: startTick,
           velocity: volume,
-          channel: 1, // Explicitly set channel, matching track's intent
+          channel: 1, 
         })
       );
     }
