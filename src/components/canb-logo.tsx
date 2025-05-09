@@ -36,7 +36,8 @@ export function CanbLogo(props: SVGProps<SVGSVGElement>) {
       {/* Spine width 20. Bottom lobe rx=50,ry=20. Top lobe rx=45,ry=20. Total height 80. Each lobe height 40. */}
       {/* Total width of B approx 70. */}
       <g transform="translate(260,0)"> {/* 170 (N_offset) + 80 (N_width) + 10 (space) */}
-        <path d="M0,0 V80 H20 A50,20 0 0 0 20,40 A45,20 0 0 0 20,0 H0 Z" />
+        {/* Corrected sweep-flag from 0 to 1 for rightward curves */}
+        <path d="M0,0 V80 H20 A50,20 0 0 1 20,40 A45,20 0 0 1 20,0 H0 Z" />
       </g>
     </svg>
   );
