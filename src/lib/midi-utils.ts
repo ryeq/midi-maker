@@ -112,7 +112,7 @@ export function generateMidiFromParsedData(parsedData: ParsedData): string { // 
   bassTrack.addEvent(new MidiWriter.ProgramChangeEvent({ instrument: instrumentId, channel: 3 }));
   
   let currentTimeInBeats = 0; 
-  const TICKS_PER_BEAT = MidiWriter.constants.TPB; 
+  const TICKS_PER_BEAT = MidiWriter.Constants.TPB; 
 
   for (const item of parsedData) {
     const midiWriterDuration = mapDurationToMidiWriter(item.duration);
@@ -166,3 +166,4 @@ export function generateMidiFromParsedData(parsedData: ParsedData): string { // 
   const dataUri = writer.dataUri(); // Format: "data:audio/midi;base64,..."
   return dataUri.split(',')[1]; // Extract base64 part
 }
+
