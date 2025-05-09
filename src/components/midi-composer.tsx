@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { useFormState } from 'react-dom';
+import { useActionState } from 'react'; // Changed from 'react-dom' and 'useFormState'
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -50,7 +50,7 @@ const initialState = {
 };
 
 export function MidiComposer() {
-  const [formState, formAction] = useFormState(createMidiFileAction, initialState);
+  const [formState, formAction] = useActionState(createMidiFileAction, initialState);
   const { toast } = useToast();
   const [pitchData, setPitchData] = useState(initialPitchData);
   const [isPending, setIsPending] = useState(false);
@@ -105,7 +105,7 @@ export function MidiComposer() {
     event.preventDefault();
     setIsPending(true);
     const formData = new FormData(event.currentTarget);
-    // Manually call formAction because useFormState might not immediately reflect pending status in complex scenarios
+    // Manually call formAction because useActionState might not immediately reflect pending status in complex scenarios
     // or if we need to manage pending state more finely.
     // For this setup, direct formAction call on submit is fine.
     // The pending state is managed via a button's disabled state.
