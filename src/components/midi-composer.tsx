@@ -1,7 +1,8 @@
+
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { useActionState } from 'react'; // Changed from 'react-dom' and 'useFormState'
+import { useState, useEffect } from 'react';
+import { useActionState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -50,14 +51,11 @@ const initialState = {
 };
 
 export function MidiComposer() {
-  const [formState, formAction] = useActionState(createMidiFileAction, initialState);
+  const [formState, formAction, isActionPending] = useActionState(createMidiFileAction, initialState);
   const { toast } = useToast();
   const [pitchData, setPitchData] = useState(initialPitchData);
-  const [isPending, setIsPending] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    setIsPending(false); // Reset pending state when formState changes
     if (formState?.error) {
       toast({
         variant: 'destructive',
@@ -101,21 +99,9 @@ export function MidiComposer() {
     }
   };
   
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsPending(true);
-    const formData = new FormData(event.currentTarget);
-    // Manually call formAction because useActionState might not immediately reflect pending status in complex scenarios
-    // or if we need to manage pending state more finely.
-    // For this setup, direct formAction call on submit is fine.
-    // The pending state is managed via a button's disabled state.
-    // This custom handleSubmit allows better control over setIsPending.
-    formAction(formData); 
-  };
-
 
   return (
-    <form onSubmit={handleSubmit} ref={formRef} className="space-y-6">
+    <form action={formAction} className="space-y-6">
       <div>
         <label htmlFor="pitchDurationData" className="block text-sm font-medium mb-1">
           Pitch Duration Data
@@ -136,8 +122,8 @@ export function MidiComposer() {
       </div>
 
       <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
-        <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
-          {isPending ? (
+        <Button type="submit" disabled={isActionPending} className="w-full sm:w-auto">
+          {isActionPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Generating...
@@ -177,3 +163,4 @@ export function MidiComposer() {
     </form>
   );
 }
+
