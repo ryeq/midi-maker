@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Midi Composer',
+  title: 'CANB Music Maker',
   description: 'Generate MIDI files from pitch and duration data.',
 };
 
