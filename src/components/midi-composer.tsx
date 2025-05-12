@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { createMidiFileAction } from '@/app/actions';
-import { Download, Loader2, Music2 } from 'lucide-react';
+import { Download, Loader2, Music2, ClipboardPaste } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
@@ -102,14 +102,52 @@ export function MidiComposer() {
       }
     }
   };
+
+  const handlePasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        setPitchData(text);
+        toast({
+          title: 'Pasted!',
+          description: 'Content pasted from clipboard.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Clipboard Empty',
+          description: 'Nothing to paste from clipboard.',
+        });
+      }
+    } catch (err) {
+      console.error('Failed to read clipboard contents: ', err);
+      toast({
+        variant: 'destructive',
+        title: 'Paste Error',
+        description: 'Could not read from clipboard. Check permissions or browser compatibility.',
+      });
+    }
+  };
   
 
   return (
     <form action={formAction} className="space-y-6">
       <div>
-        <Label htmlFor="pitchDurationData" className="block text-sm font-medium mb-1">
-          Pitch Duration Data
-        </Label>
+        <div className="flex justify-between items-center mb-1">
+          <Label htmlFor="pitchDurationData" className="block text-sm font-medium">
+            Pitch Duration Data
+          </Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handlePasteFromClipboard}
+            className="ml-2"
+          >
+            <ClipboardPaste className="mr-2 h-4 w-4" />
+            Paste
+          </Button>
+        </div>
         <Textarea
           id="pitchDurationData"
           name="pitchDurationData"
@@ -188,3 +226,4 @@ export function MidiComposer() {
     </form>
   );
 }
+
